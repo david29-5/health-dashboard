@@ -11,6 +11,7 @@ router = APIRouter(prefix="/api/dashboard", tags=["Dashboard"])
 
 @router.get("/balance/{usuario}")
 def obtener_balance_diario(usuario: str, fecha: str = None):
+    from datetime import date
     if not fecha:
         fecha_objetivo = date.today().isoformat()
     else:
@@ -20,40 +21,48 @@ def obtener_balance_diario(usuario: str, fecha: str = None):
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # 1. Búsqueda de comidas
+    # 1. Búsqueda de comidas (índices: 0=calorias, 1=proteinas, 2=carbos, 3=grasas)
     cursor.execute('''
-        SELECT SUM(calorias) as total_calorias, SUM(proteinas) as total_proteinas,
-               SUM(carbohidratos) as total_carbos, SUM(grasas) as total_grasas
+        SELECT SUM(calorias), SUM(proteinas), SUM(carbohidratos), SUM(grasas)
         FROM registro_comidas WHERE usuario = ? AND fecha = ?
     ''', (usuario, fecha_objetivo))
     row = cursor.fetchone()
     
-    consumidas = row["total_calorias"] if row["total_calorias"] else 0
+    consumidas = row[0] if row and row[0] else 0
     macros = {
-        "proteinas": row["total_proteinas"] if row["total_proteinas"] else 0,
-        "carbohidratos": row["total_carbos"] if row["total_carbos"] else 0,
-        "grasas": row["total_grasas"] if row["total_grasas"] else 0,
+        "proteinas": row[1] if row and row[1] else 0,
+        "carbohidratos": row[2] if row and row[2] else 0,
+        "grasas": row[3] if row and row[3] else 0,
     }
 
+    # Lista de comidas (índices: 0=id, 1=desc, 2=cal, 3=prot, 4=carb, 5=grasas)
     cursor.execute('''
         SELECT id, descripcion, calorias, proteinas, carbohidratos, grasas 
         FROM registro_comidas WHERE usuario = ? AND fecha = ?
     ''', (usuario, fecha_objetivo))
-    lista_comidas = [dict(comida) for comida in cursor.fetchall()]
+    lista_comidas = [
+        {
+            "id": c[0], "descripcion": c[1], "calorias": c[2], 
+            "proteinas": c[3], "carbohidratos": c[4], "grasas": c[5]
+        } 
+        for c in cursor.fetchall()
+    ]
 
-    # 2. Búsqueda de entrenamientos manuales (Boxeo) - ¡ANTES DE CERRAR!
-    cursor.execute('SELECT SUM(calorias) as calorias_entreno FROM registro_entrenamientos WHERE usuario = ? AND fecha = ?', (usuario, fecha_objetivo))
+    # 2. Búsqueda de entrenamientos manuales (Boxeo)
+    cursor.execute('SELECT SUM(calorias) FROM registro_entrenamientos WHERE usuario = ? AND fecha = ?', (usuario, fecha_objetivo))
     row_entrenos = cursor.fetchone()
-    calorias_extra = row_entrenos["calorias_entreno"] if row_entrenos and row_entrenos["calorias_entreno"] else 0
+    calorias_extra = row_entrenos[0] if row_entrenos and row_entrenos[0] else 0
     
-    # EXTRAEMOS LA LISTA PARA LA WEB
+    # Lista de entrenamientos (índices: 0=id, 1=desc, 2=cal)
     cursor.execute('SELECT id, descripcion, calorias FROM registro_entrenamientos WHERE usuario = ? AND fecha = ?', (usuario, fecha_objetivo))
-    lista_entrenamientos = [dict(e) for e in cursor.fetchall()]
+    lista_entrenamientos = [
+        {"id": e[0], "descripcion": e[1], "calorias": e[2]} 
+        for e in cursor.fetchall()
+    ]
     
-    # ¡AQUÍ CERRAMOS LA CONEXIÓN!
     conn.close()
    
-    # 3. Llamada a Garmin (no necesita la base de datos sqlite aquí)
+    # 3. Llamada a Garmin
     garmin_data = obtener_resumen_hoy(fecha_objetivo) 
     quemadas_garmin = garmin_data.get("caloriasTotales", 0) if garmin_data.get("success") else 0
     
@@ -73,7 +82,7 @@ def obtener_balance_diario(usuario: str, fecha: str = None):
         },
         "macros_acumulados": macros,
         "comidas_registradas": lista_comidas,
-        "entrenamientos_registrados": lista_entrenamientos,  # <--- AÑADE ESTA LÍNEA
+        "entrenamientos_registrados": lista_entrenamientos,
         "garmin_conectado": garmin_data.get("success", False)
     }
 @router.get("/historico/{usuario}")
