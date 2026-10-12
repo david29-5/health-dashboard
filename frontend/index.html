@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- LIBRERÍA DE GRÁFICAS -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style> body { background-color: #111827; color: white; } </style>
+</head>
+<body class="p-4 md:p-8 font-sans">
+
+    <div class="max-w-xl mx-auto space-y-6">
+        
+        <!-- Pestañas de Navegación -->
+        <header class="text-center">
+            <h1 class="text-3xl font-bold text-blue-400 mb-6">Panel de Salud</h1>
+            <div class="flex justify-center space-x-2 bg-gray-800 p-1 rounded-lg shadow-md border border-gray-700 w-fit mx-auto">
+                <button id="tab-dia" onclick="setVista('dia')" class="px-6 py-2 rounded bg-blue-600 font-semibold text-white transition">Día</button>
+                <button id="tab-semana" onclick="setVista('semana')" class="px-6 py-2 rounded text-gray-400 hover:text-white hover:bg-gray-700 transition">Semana</button>
+            </div>
+        </header>
+
+        <!-- ============================================== -->
+        <!-- VISTA 1: DIARIA (La que ya conoces)            -->
+        <!-- ============================================== -->
+        <div id="vista-diaria" class="space-y-6 block">
+            
+            <!-- Barra Navegación Fechas -->
+            <div class="flex justify-center items-center bg-gray-800 p-2 rounded-lg shadow-md border border-gray-700 w-fit mx-auto">
+                <button id="btn-dia-ant" class="px-4 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xl text-white transition">&lt;</button>
+                <span id="ui-fecha" class="font-semibold text-gray-200 text-lg w-32 text-center">Hoy</span>
+                <button id="btn-dia-sig" class="px-4 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xl text-white transition">&gt;</button>
+            </div>
+
+            <!-- Balance Diario -->
+            <div class="bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-700">
+                <h2 class="text-xl font-semibold mb-4 text-gray-200">Balance Diario</h2>
+                <div class="flex justify-between items-center bg-gray-900 rounded-lg p-4">
+                    <div class="text-center">
+                        <p class="text-xs text-gray-400 uppercase">Ingerido</p>
+                        <p class="text-2xl font-bold text-green-400" id="ui-ingeridas">-- kcal</p>
+                    </div>
+                    <div class="text-2xl font-black text-gray-500">-</div>
+                    <div class="text-center">
+                        <p class="text-xs text-gray-400 uppercase">Quemado</p>
+                        <p class="text-2xl font-bold text-orange-400" id="ui-quemadas">-- kcal</p>
+                    </div>
+                </div>
+                <div class="mt-4 text-center">
+                    <p class="text-sm text-gray-400">Balance Neto:</p>
+                    <p class="text-3xl font-bold transition-colors duration-300" id="ui-balance">--</p>
+                    <p class="text-sm mt-1" id="ui-estado">Cargando datos...</p>
+                </div>
+            </div>
+
+            <!-- Registrar Comida y Entreno -->
+            <div class="bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-700">
+                <h2 class="text-xl font-semibold mb-4 text-gray-200">Registrar Comida</h2>
+                <textarea id="input-comida" rows="3" class="w-full bg-gray-900 text-white rounded-lg p-3 border border-gray-600 focus:border-blue-500 outline-none transition" placeholder="Ej: Un buen plato de pasta con cebolla caramelizada..."></textarea>
+                <button id="btn-enviar" class="mt-4 w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-lg transition shadow-md">Analizar y Guardar</button>
+                
+                <!-- Botón de Boxeo -->
+                <div class="mt-5 border-t border-gray-700 pt-5">
+                    <button onclick="añadirBoxeo()" class="w-full bg-red-900 hover:bg-red-800 text-red-200 border border-red-700 font-bold py-3 px-4 rounded-lg transition shadow-md flex justify-center items-center gap-2">
+                        🥊 Añadir Clase de Boxeo (1h)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Comidas Registradas -->
+            <div class="bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-700">
+                <h2 class="text-xl font-semibold mb-4 text-gray-200">Comidas Registradas</h2>
+                <div id="lista-comidas" class="space-y-3"></div>
+            </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- VISTA 2: SEMANAL (¡El gráfico nuevo!)          -->
+        <!-- ============================================== -->
+        <div id="vista-semana" class="space-y-6 hidden">
+            <div class="bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-700">
+                <h2 class="text-xl font-semibold mb-2 text-gray-200 text-center">Últimos 7 Días</h2>
+                <p class="text-sm text-gray-400 text-center mb-6">Comparativa de ingesta y gasto calórico</p>
+                
+                <!-- El lienzo donde Chart.js pintará la magia -->
+                <div class="relative h-72 w-full">
+                    <canvas id="graficaSemanal"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- EL CEREBRO DE LA WEB (JavaScript) -->
+    <script>
+        const USUARIO = "David"; 
+        let fechaActual = new Date(); 
+        let miGrafica = null; // Variable para guardar el gráfico
+
+        // --- REFERENCIAS HTML ---
+        const uiIngeridas = document.getElementById('ui-ingeridas');
+        const uiQuemadas = document.getElementById('ui-quemadas');
+        const uiBalance = document.getElementById('ui-balance');
+        const uiEstado = document.getElementById('ui-estado');
+        const uiFecha = document.getElementById('ui-fecha');
+        const listaComidas = document.getElementById('lista-comidas');
+        const inputComida = document.getElementById('input-comida');
+        const btnEnviar = document.getElementById('btn-enviar');
+
+        // --- SISTEMA DE PESTAÑAS ---
+        function setVista(vista) {
+            const tabDia = document.getElementById('tab-dia');
+            const tabSemana = document.getElementById('tab-semana');
+            const vistaDiaria = document.getElementById('vista-diaria');
+            const vistaSemana = document.getElementById('vista-semana');
+
+            if (vista === 'dia') {
+                tabDia.className = "px-6 py-2 rounded bg-blue-600 font-semibold text-white transition";
+                tabSemana.className = "px-6 py-2 rounded text-gray-400 hover:text-white hover:bg-gray-700 transition";
+                vistaDiaria.classList.remove('hidden');
+                vistaSemana.classList.add('hidden');
+                cargarBalance();
+            } else {
+                tabSemana.className = "px-6 py-2 rounded bg-blue-600 font-semibold text-white transition";
+                tabDia.className = "px-6 py-2 rounded text-gray-400 hover:text-white hover:bg-gray-700 transition";
+                vistaSemana.classList.remove('hidden');
+                vistaDiaria.classList.add('hidden');
+                cargarGrafica(); // Llamar al servidor a pedir los 7 días
+            }
+        }
+
+        // --- LÓGICA VISTA DIARIA ---
+        function getFechaISO() {
+            const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+            return new Date(fechaActual - tzoffset).toISOString().split('T')[0];
+        }
+
+        function actualizarUIFecha() {
+            const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+            const hoyISO = new Date(Date.now() - tzoffset).toISOString().split('T')[0];
+            
+            // Sacamos el nombre del día en español (ej: "lunes")
+            const nombreDia = fechaActual.toLocaleDateString('es-ES', { weekday: 'long' });
+            // Lo ponemos con la primera letra mayúscula ("Lunes")
+            const diaCapitalizado = nombreDia.charAt(0).toUpperCase() + nombreDia.slice(1);
+            
+            if (getFechaISO() === hoyISO) {
+                // Si es hoy, mostramos "Hoy (Lunes)"
+                uiFecha.textContent = `Hoy (${diaCapitalizado})`;
+            } else {
+                // Si es otro día, mostramos "Lunes, 11 oct"
+                const fechaCorta = fechaActual.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+                uiFecha.textContent = `${diaCapitalizado}, ${fechaCorta}`;
+            }
+        }
+
+        async function cargarBalance() {
+            const fechaStr = getFechaISO();
+            try {
+                const res = await fetch(`/api/dashboard/balance/${USUARIO}?fecha=${fechaStr}`);
+                const datos = await res.json();
+
+                if (datos.success) {
+                    uiIngeridas.textContent = `${datos.resumen.calorias_ingeridas} kcal`;
+                    uiQuemadas.textContent = `${datos.resumen.calorias_quemadas_garmin} kcal`;
+                    uiBalance.textContent = datos.resumen.balance_neto;
+                    uiEstado.textContent = datos.resumen.estado;
+                    uiBalance.className = datos.resumen.balance_neto < 0 ? "text-3xl font-bold text-red-400" : "text-3xl font-bold text-green-400";
+
+                    listaComidas.innerHTML = "";
+                    
+                    const hayComidas = datos.comidas_registradas && datos.comidas_registradas.length > 0;
+                    const hayEntrenos = datos.entrenamientos_registrados && datos.entrenamientos_registrados.length > 0;
+
+                    if (!hayComidas && !hayEntrenos) {
+                        listaComidas.innerHTML = '<p class="text-gray-500 text-sm text-center italic">No hay registros este día.</p>';
+                    } else {
+                        // 1. Pintamos las COMIDAS (Grises y Verdes)
+                        if (hayComidas) {
+                            datos.comidas_registradas.forEach(comida => {
+                                listaComidas.innerHTML += `
+                                    <div class="bg-gray-900 p-4 rounded-lg border border-gray-700 flex justify-between items-center mb-3">
+                                        <div class="flex-1 pr-4">
+                                            <p class="text-sm text-gray-200">🍽️ "${comida.descripcion}"</p>
+                                            <p class="text-xs text-green-400 mt-2 font-mono">+${comida.calorias} kcal | P:${comida.proteinas}g | C:${comida.carbohidratos}g | G:${comida.grasas}g</p>
+                                        </div>
+                                        <div class="flex space-x-2">
+                                            <button onclick="editarComida(${comida.id}, '${comida.descripcion.replace(/'/g, "\\'")}')" class="p-2 bg-blue-600 hover:bg-blue-500 rounded text-white transition">✏️</button>
+                                            <button onclick="borrarComida(${comida.id})" class="p-2 bg-gray-700 hover:bg-red-500 rounded text-gray-400 hover:text-white transition">🗑️</button>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                        }
+
+                        // 2. Pintamos los ENTRENAMIENTOS (Rojos y Naranjas)
+                        if (hayEntrenos) {
+                            datos.entrenamientos_registrados.forEach(entreno => {
+                                listaComidas.innerHTML += `
+                                    <div class="bg-red-900/20 p-4 rounded-lg border border-red-800/50 flex justify-between items-center mb-3">
+                                        <div class="flex-1 pr-4">
+                                            <p class="text-sm text-red-200 font-semibold">🥊 ${entreno.descripcion}</p>
+                                            <p class="text-xs text-orange-400 mt-2 font-mono">🔥 -${entreno.calorias} kcal quemadas</p>
+                                        </div>
+                                        <div class="flex space-x-2">
+                                            <button onclick="borrarEntreno(${entreno.id})" class="p-2 bg-red-900 hover:bg-red-600 border border-red-700 rounded text-red-200 hover:text-white transition">🗑️</button>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                        }
+                    }
+                }
+            } catch (error) { 
+                console.error(error); 
+            }
+        }
+
+        document.getElementById('btn-dia-ant').addEventListener('click', () => { fechaActual.setDate(fechaActual.getDate() - 1); actualizarUIFecha(); cargarBalance(); });
+        document.getElementById('btn-dia-sig').addEventListener('click', () => { fechaActual.setDate(fechaActual.getDate() + 1); actualizarUIFecha(); cargarBalance(); });
+
+        btnEnviar.addEventListener('click', async () => {
+            const descripcion = inputComida.value.trim();
+            if (!descripcion) return;
+            const originalText = btnEnviar.textContent;
+            btnEnviar.textContent = "Analizando con IA...";
+            btnEnviar.classList.replace('bg-blue-600', 'bg-gray-600');
+            btnEnviar.disabled = true;
+
+            try {
+                const res = await fetch('/api/nutricion/registrar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ usuario: USUARIO, descripcion: descripcion,fecha: getFechaISO() })
+                });
+                const datos = await res.json();
+                if (datos.success) {
+                    inputComida.value = "";
+                    actualizarUIFecha();
+                    cargarBalance();
+                } else alert("Error: " + datos.error);
+            } finally {
+                btnEnviar.textContent = originalText;
+                btnEnviar.classList.replace('bg-gray-600', 'bg-blue-600');
+                btnEnviar.disabled = false;
+            }
+        });
+
+        window.borrarComida = async function(id) {
+            if(!confirm("¿Borrar esta comida?")) return;
+            await fetch(`/api/nutricion/borrar/${id}`, { method: 'DELETE' });
+            cargarBalance();
+        }
+
+        window.editarComida = async function(id, textoAntiguo) {
+            const nuevoTexto = prompt("Corrige el plato:", textoAntiguo);
+            if(!nuevoTexto || nuevoTexto === textoAntiguo) return;
+            alert("Recalculando... Pulsa OK");
+            const res = await fetch(`/api/nutricion/editar/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ descripcion: nuevoTexto })
+            });
+            const datos = await res.json();
+            if(datos.success) cargarBalance(); else alert("Error: " + datos.error);
+        }
+
+        // --- LÓGICA VISTA SEMANAL (CHART.JS) ---
+        async function cargarGrafica() {
+            try {
+                const res = await fetch(`/api/dashboard/historico/${USUARIO}?dias=7`);
+                const info = await res.json();
+
+                if (!info.success) return;
+
+                // Extraemos las listas de datos
+                const labels = info.datos.map(d => d.fecha);
+                const ingeridas = info.datos.map(d => d.ingeridas);
+                const quemadas = info.datos.map(d => d.quemadas);
+
+                const ctx = document.getElementById('graficaSemanal').getContext('2d');
+                
+                // Si la gráfica ya existía de antes, la destruimos para dibujarla fresca
+                if (miGrafica) {
+                    miGrafica.destroy();
+                }
+
+                // Dibujamos la gráfica
+                miGrafica = new Chart(ctx, {
+                    type: 'bar', // Gráfico de barras
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Ingeridas (Kcal)',
+                                data: ingeridas,
+                                backgroundColor: '#4ade80', // Verde
+                                borderRadius: 4
+                            },
+                            {
+                                label: 'Quemadas (Kcal)',
+                                data: quemadas,
+                                backgroundColor: '#fb923c', // Naranja
+                                borderRadius: 4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: '#374151' }, // Rejilla oscura
+                                ticks: { color: '#9ca3af' }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: '#9ca3af' }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                labels: { color: '#e5e7eb' }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error("Fallo al cargar gráfico", error);
+            }
+        }
+window.añadirBoxeo = async function() {
+            if(!confirm("¿Añadir clase de boxeo a este día?")) return;
+            
+            const res = await fetch('/api/nutricion/entrenamiento', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    usuario: USUARIO, 
+                    fecha: getFechaISO(), 
+                    descripcion: "Clase de Boxeo (1h)", 
+                    calorias: 600 
+                })
+            });
+            const datos = await res.json();
+            if(datos.success) {
+                cargarBalance();
+            } else {
+                alert("Error al guardar: " + datos.error);
+            }
+        }
+        window.borrarEntreno = async function(id) {
+            if(!confirm("¿Borrar este entrenamiento?")) return;
+            
+            try {
+                const res = await fetch(`/api/nutricion/entrenamiento/${id}`, { 
+                    method: 'DELETE' 
+                });
+                const datos = await res.json();
+                
+                if(datos.success) {
+                    cargarBalance(); // Recarga la lista automáticamente
+                } else {
+                    alert("Error al borrar: " + datos.mensaje);
+                }
+            } catch (error) {
+                console.error("Error borrando el entreno:", error);
+            }
+        }
+        // Arrancar
+        actualizarUIFecha();
+        cargarBalance();
+    </script>
+</body>
+</html>
