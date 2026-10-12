@@ -10,17 +10,17 @@ if TURSO_URL and TURSO_TOKEN:
     # Si estamos en Render, usamos el driver de la Nube
     import libsql_experimental as sqlite3
     def get_db_connection():
-    url = os.getenv("TURSO_DATABASE_URL")
-    token = os.getenv("TURSO_AUTH_TOKEN")
+        url = os.getenv("TURSO_DATABASE_URL")
+        token = os.getenv("TURSO_AUTH_TOKEN")
     
-    if url and token:
-        import libsql_experimental
-        return libsql_experimental.connect(database=url, auth_token=token)
-    else:
-        import sqlite3
-        conn = sqlite3.connect("database.sqlite")
-        conn.row_factory = sqlite3.Row
-        return conn
+        if url and token:
+            import libsql_experimental
+            return libsql_experimental.connect(database=url, auth_token=token)
+        else:
+            import sqlite3
+            conn = sqlite3.connect("database.sqlite")
+            conn.row_factory = sqlite3.Row
+            return conn
     def dict_factory(cursor, row):
         return dict(zip([col[0] for col in cursor.description], row))
         conn.row_factory = dict_factory
