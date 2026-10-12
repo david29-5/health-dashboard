@@ -11,7 +11,9 @@ if TURSO_URL and TURSO_TOKEN:
     import libsql_experimental as sqlite3
     def get_db_connection():
         conn = sqlite3.connect(TURSO_URL, auth_token=TURSO_TOKEN)
-        conn.row_factory = sqlite3.Row
+    def dict_factory(cursor, row):
+        return dict(zip([col[0] for col in cursor.description], row))
+        conn.row_factory = dict_factory
         return conn
 else:
     # Si estamos en tu PC, usamos el de siempre
