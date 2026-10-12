@@ -18,7 +18,6 @@ def obtener_balance_diario(usuario: str, fecha: str = None):
         fecha_objetivo = fecha_limpia
         
     conn = get_db_connection()
-    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     
     # 1. Búsqueda de comidas
