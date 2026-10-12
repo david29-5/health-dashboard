@@ -8,7 +8,7 @@ click==8.5.0
 curl_cffi==0.16.3
 distro==1.9.0
 fastapi==0.143.0
-garminconnect==0.3.17
+garminconnect
 groq==1.7.0
 h11==0.16.0
 httpcore==1.0.9
