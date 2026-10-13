@@ -6,7 +6,30 @@ from routers import garmin_routes, nutrition_routes, dashboard_routes
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from routers import dashboard_routes, auth_routes  # <- Añade auth_routes aquí
+from database.db import get_db_connection
 
+def inicializar_db():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT,
+                usa_garmin BOOLEAN DEFAULT 0,
+                garmin_user TEXT,
+                garmin_password TEXT
+            )
+        ''')
+        conn.commit()
+        conn.close()
+        print("✅ Base de datos de usuarios verificada/creada con éxito.")
+    except Exception as e:
+        print(f"❌ Error creando la tabla usuarios: {e}")
+
+# Ejecutamos esta función automáticamente cada vez que arranca el servidor
+inicializar_db()
 
 # Inicializamos la base de datos al arrancar
 init_db()  # <--- NUEVO
