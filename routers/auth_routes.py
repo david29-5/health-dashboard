@@ -57,3 +57,26 @@ def iniciar_sesion(datos: UsuarioAuth):
         "token": token,
         "username": datos.username
     }
+
+    # Molde para recibir las credenciales de Garmin
+class GarminCreds(BaseModel):
+    usuario: str
+    garmin_user: str
+    garmin_password: str
+
+@router.post("/guardar-garmin")
+def guardar_credenciales_garmin(datos: GarminCreds):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Guardamos el correo y la contraseña de Garmin para este usuario
+    cursor.execute('''
+        UPDATE usuarios 
+        SET garmin_user = ?, garmin_password = ?, usa_garmin = 1 
+        WHERE username = ?
+    ''', (datos.garmin_user, datos.garmin_password, datos.usuario))
+    
+    conn.commit()
+    conn.close()
+    
+    return {"success": True, "mensaje": "Credenciales de Garmin vinculadas a tu cuenta."}

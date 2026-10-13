@@ -2,7 +2,6 @@ from fastapi import APIRouter, BackgroundTasks
 from pydantic import BaseModel
 from datetime import date, timedelta
 from database.db import get_db_connection
-# Importamos las NUEVAS funciones rápidas de Garmin
 from services.garmin_service import leer_cache_garmin, sincronizar_garmin_background 
 
 router = APIRouter(prefix="/api/dashboard", tags=["Dashboard"])
@@ -62,16 +61,15 @@ def obtener_balance_diario(usuario: str, background_tasks: BackgroundTasks, fech
     
     conn.close()
    
-    # 4. Lógica de Base: Garmin vs Manual (SISTEMA ULTRARRÁPIDO)
+    # 4. Lógica de Base: Garmin vs Manual (SISTEMA MULTI-USUARIO)
     if modo == "garmin":
-        # Leemos instantáneamente de la base de datos (0 si no hay nada aún)
-        quemadas_base = leer_cache_garmin(fecha_objetivo)
+        # ¡AQUÍ ESTÁ EL CAMBIO! Le pasamos el 'usuario' para que lea solo su caché
+        quemadas_base = leer_cache_garmin(fecha_objetivo, usuario)
         estado_garmin = True
         
-        # Mandamos a descargar el dato real en segundo plano sin bloquear la web
-        background_tasks.add_task(sincronizar_garmin_background, fecha_objetivo)
+        # ¡AQUÍ TAMBIÉN! El minion recibe el usuario para conectarse con su contraseña
+        background_tasks.add_task(sincronizar_garmin_background, fecha_objetivo, usuario)
     else:
-        # Modo manual: base es la cantidad que introdujiste a mano
         quemadas_base = calorias_fijas_manuales
         estado_garmin = False
     
@@ -106,7 +104,6 @@ def obtener_historico(usuario: str, background_tasks: BackgroundTasks, dias: int
     for i in range(dias - 1, -1, -1): 
         fecha_objetivo = (hoy - timedelta(days=i)).isoformat()
         
-        # 1. Comidas
         cursor.execute('''
             SELECT SUM(calorias) 
             FROM registro_comidas 
@@ -115,11 +112,9 @@ def obtener_historico(usuario: str, background_tasks: BackgroundTasks, dias: int
         ingeridas_row = cursor.fetchone()
         ingeridas = ingeridas_row[0] if ingeridas_row and ingeridas_row[0] else 0
         
-        # 2. Garmin (Lectura rápida en caché)
-        quemadas = leer_cache_garmin(fecha_objetivo)
-        
-        # Actualizar en segundo plano también los días del histórico
-        background_tasks.add_task(sincronizar_garmin_background, fecha_objetivo)
+        # ¡AQUÍ ESTÁ EL CAMBIO DEL HISTÓRICO!
+        quemadas = leer_cache_garmin(fecha_objetivo, usuario)
+        background_tasks.add_task(sincronizar_garmin_background, fecha_objetivo, usuario)
         
         historico.append({
             "fecha": fecha_objetivo[-5:], 
@@ -142,13 +137,11 @@ def añadir_gasto_manual(usuario: str, datos: GastoManual):
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # 1. Borramos el gasto manual anterior
     cursor.execute('''
         DELETE FROM registro_entrenamientos 
         WHERE usuario = ? AND fecha = ? AND descripcion = 'Gasto Diario (Manual)'
     ''', (usuario, datos.fecha))
     
-    # 2. Insertamos el nuevo
     cursor.execute('''
         INSERT INTO registro_entrenamientos (usuario, fecha, descripcion, calorias)
         VALUES (?, ?, ?, ?)

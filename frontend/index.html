@@ -421,8 +421,44 @@
             cargarBalance();
         }
         
-        function guardarCredencialesGarmin() {
-            alert("¡Interfaz lista! El próximo paso es enviar esto a la base de datos.");
+        async function guardarCredencialesGarmin() {
+            const gu = document.getElementById('garmin-email').value;
+            const gp = document.getElementById('garmin-pass').value;
+            
+            if(!gu || !gp) {
+                alert("Por favor, rellena tu email y contraseña de Garmin Connect.");
+                return;
+            }
+
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = "Conectando...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/auth/guardar-garmin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        usuario: USUARIO, 
+                        garmin_user: gu, 
+                        garmin_password: gp 
+                    })
+                });
+                const data = await res.json();
+                
+                if(data.success) {
+                    alert("✅ ¡Cuenta vinculada! A partir de ahora tu panel leerá los datos de tu reloj.");
+                    cargarBalance(); // Forzamos recarga para que el minion empiece a trabajar
+                } else {
+                    alert("Error: " + data.error);
+                }
+            } catch(e) {
+                console.error(e);
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
         }
 
         // --- SISTEMA DE AUTENTICACIÓN ---
