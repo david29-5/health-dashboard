@@ -77,6 +77,37 @@
                         🥊 Añadir Clase de Boxeo (1h)
                     </button>
                 </div>
+                <!-- NUEVO: Selector de Modo (Garmin vs Manual) -->
+            <div class="bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-700 mt-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-200">Modo de Gasto Calórico</h2>
+                    <!-- Switch animado Tailwind -->
+                    <label class="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" id="toggle-modo" class="sr-only peer" onchange="cambiarModo()" checked>
+                      <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      <span class="ml-3 text-sm font-medium text-gray-300" id="texto-modo">Garmin</span>
+                    </label>
+                </div>
+
+                <!-- Panel Garmin (Login) -->
+                <div id="panel-garmin" class="block mt-4 border-t border-gray-700 pt-4">
+                    <p class="text-sm text-gray-400 mb-4">Conecta tu cuenta para sincronizar tus pasos y entrenamientos automáticamente.</p>
+                    <div class="flex flex-col gap-3">
+                        <input type="email" id="garmin-email" placeholder="Email de Garmin Connect" class="w-full bg-gray-900 text-white rounded-lg p-3 border border-gray-600 focus:border-blue-500 outline-none">
+                        <input type="password" id="garmin-pass" placeholder="Contraseña" class="w-full bg-gray-900 text-white rounded-lg p-3 border border-gray-600 focus:border-blue-500 outline-none">
+                        <button onclick="guardarCredencialesGarmin()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-lg transition shadow-md w-full">Guardar y Conectar</button>
+                    </div>
+                </div>
+
+                <!-- Panel Manual -->
+                <div id="panel-gasto-manual" class="hidden mt-4 border-t border-gray-700 pt-4">
+                    <p class="text-sm text-gray-400 mb-4">Introduce tu gasto calórico diario manualmente:</p>
+                    <div class="flex gap-2">
+                        <input type="number" id="input-calorias-manual" placeholder="Ej: 450" class="w-full bg-gray-900 text-white rounded-lg p-3 border border-gray-600 focus:border-blue-500 outline-none transition">
+                        <button onclick="enviarGastoManual()" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition shadow-md">Añadir</button>
+                    </div>
+                </div>
+            </div>
             </div>
 
             <!-- Comidas Registradas -->
@@ -178,14 +209,6 @@
                     uiBalance.textContent = datos.resumen.balance_neto;
                     uiEstado.textContent = datos.resumen.estado;
                     uiBalance.className = datos.resumen.balance_neto < 0 ? "text-3xl font-bold text-red-400" : "text-3xl font-bold text-green-400";
-                    // NUEVO: Lógica para mostrar/ocultar panel manual
-                    const panelManual = document.getElementById('panel-gasto-manual');
-                    if (datos.garmin_conectado === true) {
-                        panelManual.classList.add('hidden');
-                    } else {
-                        panelManual.classList.remove('hidden');
-                    }
-
                     listaComidas.innerHTML = "";
                     
                     const hayComidas = datos.comidas_registradas && datos.comidas_registradas.length > 0;
@@ -418,6 +441,31 @@ window.añadirBoxeo = async function() {
             } catch (error) {
                 console.error("Error enviando gasto manual:", error);
             }
+        }
+
+        // Lógica del Switch Garmin/Manual
+        function cambiarModo() {
+            const toggle = document.getElementById('toggle-modo');
+            const panelGarmin = document.getElementById('panel-garmin');
+            const panelManual = document.getElementById('panel-gasto-manual');
+            const textoModo = document.getElementById('texto-modo');
+
+            if (toggle.checked) {
+                // Mostrar Garmin, ocultar Manual
+                panelGarmin.classList.remove('hidden');
+                panelManual.classList.add('hidden');
+                textoModo.textContent = "Garmin";
+            } else {
+                // Mostrar Manual, ocultar Garmin
+                panelGarmin.classList.add('hidden');
+                panelManual.classList.remove('hidden');
+                textoModo.textContent = "Manual";
+            }
+        }
+        
+        // Función placeholder para cuando hagamos el backend
+        function guardarCredencialesGarmin() {
+            alert("¡Interfaz lista! El próximo paso es enviar esto a la base de datos.");
         }
         // Arrancar
         actualizarUIFecha();
