@@ -11,20 +11,37 @@
 </head>
 <body class="p-4 md:p-8 font-sans">
 
-    <div class="max-w-xl mx-auto space-y-6">
+    <!-- ============================================== -->
+    <!-- VISTA LOGIN (NUEVA PANTALLA INICIAL)           -->
+    <!-- ============================================== -->
+    <div id="vista-login" class="max-w-md mx-auto bg-gray-800 rounded-xl p-8 shadow-lg border border-gray-700 mt-10">
+        <h2 class="text-3xl font-bold text-blue-400 mb-6 text-center">Health Dashboard</h2>
+        <div class="space-y-4">
+            <input type="text" id="auth-username" placeholder="Nombre de usuario" class="w-full bg-gray-900 text-white rounded-lg p-3 border border-gray-600 focus:border-blue-500 outline-none">
+            <input type="password" id="auth-password" placeholder="Contraseña" class="w-full bg-gray-900 text-white rounded-lg p-3 border border-gray-600 focus:border-blue-500 outline-none">
+            
+            <button onclick="hacerLogin()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-lg transition shadow-md">Iniciar Sesión</button>
+            <button onclick="hacerRegistro()" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg transition shadow-md mt-2">Crear Cuenta</button>
+        </div>
+        <p id="auth-error" class="text-red-400 text-sm mt-4 text-center hidden"></p>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- VISTA APP (TU PANEL OCULTO HASTA INICIAR SESIÓN)-->
+    <!-- ============================================== -->
+    <div id="vista-app" class="max-w-xl mx-auto space-y-6 hidden">
         
         <!-- Pestañas de Navegación -->
-        <header class="text-center">
-            <h1 class="text-3xl font-bold text-blue-400 mb-6">Panel de Salud</h1>
+        <header class="text-center relative">
+            <button onclick="cerrarSesion()" class="absolute right-0 top-0 text-sm text-gray-400 hover:text-white bg-gray-800 px-3 py-1 rounded border border-gray-700 transition">Salir</button>
+            <h1 class="text-3xl font-bold text-blue-400 mb-6">Panel de <span id="nombre-usuario-ui">Salud</span></h1>
             <div class="flex justify-center space-x-2 bg-gray-800 p-1 rounded-lg shadow-md border border-gray-700 w-fit mx-auto">
                 <button id="tab-dia" onclick="setVista('dia')" class="px-6 py-2 rounded bg-blue-600 font-semibold text-white transition">Día</button>
                 <button id="tab-semana" onclick="setVista('semana')" class="px-6 py-2 rounded text-gray-400 hover:text-white hover:bg-gray-700 transition">Semana</button>
             </div>
         </header>
 
-        <!-- ============================================== -->
-        <!-- VISTA 1: DIARIA (La que ya conoces)            -->
-        <!-- ============================================== -->
+        <!-- VISTA 1: DIARIA -->
         <div id="vista-diaria" class="space-y-6 block">
             
             <!-- Barra Navegación Fechas -->
@@ -32,8 +49,6 @@
                 <button id="btn-dia-ant" class="px-4 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xl text-white transition">&lt;</button>
                 <span id="ui-fecha" class="font-semibold text-gray-200 text-lg w-32 text-center">Hoy</span>
                 <button id="btn-dia-sig" class="px-4 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xl text-white transition">&gt;</button>
-                
-                <!-- NUEVO: Botón Recargar suave -->
                 <button onclick="cargarBalance()" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded text-xl text-white transition shadow ml-2" title="Recargar datos">🔄</button>
             </div>
 
@@ -58,16 +73,6 @@
                 </div>
             </div>
 
-            <!-- Panel de Gasto Manual (Oculto por defecto) -->
-            <div id="panel-gasto-manual" class="bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-700 hidden mt-6">
-                <h2 class="text-xl font-semibold mb-2 text-gray-200">⌚ Sin conexión a Garmin</h2>
-                <p class="text-sm text-gray-400 mb-4">Introduce tu gasto calórico diario manualmente:</p>
-                <div class="flex gap-2">
-                    <input type="number" id="input-calorias-manual" placeholder="Ej: 450" class="w-full bg-gray-900 text-white rounded-lg p-3 border border-gray-600 focus:border-blue-500 outline-none transition">
-                    <button onclick="enviarGastoManual()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-lg transition shadow-md">Guardar</button>
-                </div>
-            </div>
-
             <!-- Registrar Comida y Entreno -->
             <div class="bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-700">
                 <h2 class="text-xl font-semibold mb-4 text-gray-200">Registrar Comida</h2>
@@ -80,11 +85,12 @@
                         🥊 Añadir Clase de Boxeo (1h)
                     </button>
                 </div>
-                <!-- NUEVO: Selector de Modo (Garmin vs Manual) -->
-            <div class="bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-700 mt-6">
+            </div>
+
+            <!-- Selector de Modo (Garmin vs Manual) -->
+            <div class="bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-700">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-semibold text-gray-200">Modo de Gasto Calórico</h2>
-                    <!-- Switch animado Tailwind -->
                     <label class="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" id="toggle-modo" class="sr-only peer" onchange="cambiarModo()" checked>
                       <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
@@ -99,7 +105,6 @@
                             <span>⚙️ Configurar credenciales de Garmin</span>
                             <span class="transition group-open:rotate-180">▼</span>
                         </summary>
-                        
                         <div class="mt-4 pl-2">
                             <p class="text-sm text-gray-400 mb-4">Conecta tu cuenta para sincronizar tus pasos y entrenamientos automáticamente.</p>
                             <div class="flex flex-col gap-3">
@@ -120,7 +125,6 @@
                     </div>
                 </div>
             </div>
-            </div>
 
             <!-- Comidas Registradas -->
             <div class="bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-700">
@@ -129,15 +133,11 @@
             </div>
         </div>
 
-        <!-- ============================================== -->
-        <!-- VISTA 2: SEMANAL (¡El gráfico nuevo!)          -->
-        <!-- ============================================== -->
+        <!-- VISTA 2: SEMANAL -->
         <div id="vista-semana" class="space-y-6 hidden">
             <div class="bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-700">
                 <h2 class="text-xl font-semibold mb-2 text-gray-200 text-center">Últimos 7 Días</h2>
                 <p class="text-sm text-gray-400 text-center mb-6">Comparativa de ingesta y gasto calórico</p>
-                
-                <!-- El lienzo donde Chart.js pintará la magia -->
                 <div class="relative h-72 w-full">
                     <canvas id="graficaSemanal"></canvas>
                 </div>
@@ -146,11 +146,14 @@
 
     </div>
 
-    <!-- EL CEREBRO DE LA WEB (JavaScript) -->
+    <!-- ============================================== -->
+    <!-- EL CEREBRO DE LA WEB (JavaScript)              -->
+    <!-- ============================================== -->
     <script>
-        const USUARIO = "David"; 
+        let USUARIO = null; 
+        let TOKEN = null;
         let fechaActual = new Date(); 
-        let miGrafica = null; // Variable para guardar el gráfico
+        let miGrafica = null;
 
         // --- REFERENCIAS HTML ---
         const uiIngeridas = document.getElementById('ui-ingeridas');
@@ -180,11 +183,10 @@
                 tabDia.className = "px-6 py-2 rounded text-gray-400 hover:text-white hover:bg-gray-700 transition";
                 vistaSemana.classList.remove('hidden');
                 vistaDiaria.classList.add('hidden');
-                cargarGrafica(); // Llamar al servidor a pedir los 7 días
+                cargarGrafica();
             }
         }
 
-        // --- LÓGICA VISTA DIARIA ---
         function getFechaISO() {
             const tzoffset = (new Date()).getTimezoneOffset() * 60000;
             return new Date(fechaActual - tzoffset).toISOString().split('T')[0];
@@ -193,17 +195,12 @@
         function actualizarUIFecha() {
             const tzoffset = (new Date()).getTimezoneOffset() * 60000;
             const hoyISO = new Date(Date.now() - tzoffset).toISOString().split('T')[0];
-            
-            // Sacamos el nombre del día en español (ej: "lunes")
             const nombreDia = fechaActual.toLocaleDateString('es-ES', { weekday: 'long' });
-            // Lo ponemos con la primera letra mayúscula ("Lunes")
             const diaCapitalizado = nombreDia.charAt(0).toUpperCase() + nombreDia.slice(1);
             
             if (getFechaISO() === hoyISO) {
-                // Si es hoy, mostramos "Hoy (Lunes)"
                 uiFecha.textContent = `Hoy (${diaCapitalizado})`;
             } else {
-                // Si es otro día, mostramos "Lunes, 11 oct"
                 const fechaCorta = fechaActual.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
                 uiFecha.textContent = `${diaCapitalizado}, ${fechaCorta}`;
             }
@@ -213,13 +210,14 @@
             const fechaStr = getFechaISO();
             const toggleModo = document.getElementById('toggle-modo');
             const modo = toggleModo && toggleModo.checked ? "garmin" : "manual";
-            // NUEVO: ESTADO DE CARGA VISUAL (Animación de parpadeo)
+            
             uiIngeridas.innerHTML = '<span class="animate-pulse text-gray-500">⏳</span>';
             uiQuemadas.innerHTML = '<span class="animate-pulse text-gray-500">⏳</span>';
             uiBalance.innerHTML = '<span class="animate-pulse text-gray-500">...</span>';
             uiEstado.textContent = "Obteniendo datos...";
-            uiBalance.className = "text-3xl font-bold text-gray-500"; // Color neutro mientras carga
+            uiBalance.className = "text-3xl font-bold text-gray-500"; 
             listaComidas.innerHTML = '<div class="flex justify-center"><span class="animate-pulse text-3xl">⏳</span></div>';
+            
             try {
                 const res = await fetch(`/api/dashboard/balance/${USUARIO}?fecha=${fechaStr}&modo=${modo}`);
                 const datos = await res.json();
@@ -234,12 +232,10 @@
                     
                     const hayComidas = datos.comidas_registradas && datos.comidas_registradas.length > 0;
                     const hayEntrenos = datos.entrenamientos_registrados && datos.entrenamientos_registrados.length > 0;
-                    
 
                     if (!hayComidas && !hayEntrenos) {
                         listaComidas.innerHTML = '<p class="text-gray-500 text-sm text-center italic">No hay registros este día.</p>';
                     } else {
-                        // 1. Pintamos las COMIDAS (Grises y Verdes)
                         if (hayComidas) {
                             datos.comidas_registradas.forEach(comida => {
                                 listaComidas.innerHTML += `
@@ -256,8 +252,6 @@
                                 `;
                             });
                         }
-
-                        // 2. Pintamos los ENTRENAMIENTOS (Rojos y Naranjas)
                         if (hayEntrenos) {
                             datos.entrenamientos_registrados.forEach(entreno => {
                                 listaComidas.innerHTML += `
@@ -275,9 +269,7 @@
                         }
                     }
                 }
-            } catch (error) { 
-                console.error(error); 
-            }
+            } catch (error) { console.error(error); }
         }
 
         document.getElementById('btn-dia-ant').addEventListener('click', () => { fechaActual.setDate(fechaActual.getDate() - 1); actualizarUIFecha(); cargarBalance(); });
@@ -329,121 +321,64 @@
             if(datos.success) cargarBalance(); else alert("Error: " + datos.error);
         }
 
-        // --- LÓGICA VISTA SEMANAL (CHART.JS) ---
         async function cargarGrafica() {
             try {
                 const res = await fetch(`/api/dashboard/historico/${USUARIO}?dias=7`);
                 const info = await res.json();
-
                 if (!info.success) return;
 
-                // Extraemos las listas de datos
                 const labels = info.datos.map(d => d.fecha);
                 const ingeridas = info.datos.map(d => d.ingeridas);
                 const quemadas = info.datos.map(d => d.quemadas);
 
                 const ctx = document.getElementById('graficaSemanal').getContext('2d');
-                
-                // Si la gráfica ya existía de antes, la destruimos para dibujarla fresca
-                if (miGrafica) {
-                    miGrafica.destroy();
-                }
+                if (miGrafica) { miGrafica.destroy(); }
 
-                // Dibujamos la gráfica
                 miGrafica = new Chart(ctx, {
-                    type: 'bar', // Gráfico de barras
+                    type: 'bar',
                     data: {
                         labels: labels,
                         datasets: [
-                            {
-                                label: 'Ingeridas (Kcal)',
-                                data: ingeridas,
-                                backgroundColor: '#4ade80', // Verde
-                                borderRadius: 4
-                            },
-                            {
-                                label: 'Quemadas (Kcal)',
-                                data: quemadas,
-                                backgroundColor: '#fb923c', // Naranja
-                                borderRadius: 4
-                            }
+                            { label: 'Ingeridas (Kcal)', data: ingeridas, backgroundColor: '#4ade80', borderRadius: 4 },
+                            { label: 'Quemadas (Kcal)', data: quemadas, backgroundColor: '#fb923c', borderRadius: 4 }
                         ]
                     },
                     options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                grid: { color: '#374151' }, // Rejilla oscura
-                                ticks: { color: '#9ca3af' }
-                            },
-                            x: {
-                                grid: { display: false },
-                                ticks: { color: '#9ca3af' }
-                            }
-                        },
-                        plugins: {
-                            legend: {
-                                labels: { color: '#e5e7eb' }
-                            }
-                        }
+                        responsive: true, maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true, grid: { color: '#374151' }, ticks: { color: '#9ca3af' } }, x: { grid: { display: false }, ticks: { color: '#9ca3af' } } },
+                        plugins: { legend: { labels: { color: '#e5e7eb' } } }
                     }
                 });
-            } catch (error) {
-                console.error("Fallo al cargar gráfico", error);
-            }
+            } catch (error) { console.error("Fallo al cargar gráfico", error); }
         }
-window.añadirBoxeo = async function() {
+
+        window.añadirBoxeo = async function() {
             if(!confirm("¿Añadir clase de boxeo a este día?")) return;
-            
             const res = await fetch('/api/nutricion/entrenamiento', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    usuario: USUARIO, 
-                    fecha: getFechaISO(), 
-                    descripcion: "Clase de Boxeo (1h)", 
-                    calorias: 600 
-                })
+                body: JSON.stringify({ usuario: USUARIO, fecha: getFechaISO(), descripcion: "Clase de Boxeo (1h)", calorias: 600 })
             });
             const datos = await res.json();
-            if(datos.success) {
-                cargarBalance();
-            } else {
-                alert("Error al guardar: " + datos.error);
-            }
+            if(datos.success) { cargarBalance(); } else { alert("Error al guardar: " + datos.error); }
         }
+
         window.borrarEntreno = async function(id) {
             if(!confirm("¿Borrar este entrenamiento?")) return;
-            
             try {
-                const res = await fetch(`/api/nutricion/entrenamiento/${id}`, { 
-                    method: 'DELETE' 
-                });
+                const res = await fetch(`/api/nutricion/entrenamiento/${id}`, { method: 'DELETE' });
                 const datos = await res.json();
-                
-                if(datos.success) {
-                    cargarBalance(); // Recarga la lista automáticamente
-                } else {
-                    alert("Error al borrar: " + datos.mensaje);
-                }
-            } catch (error) {
-                console.error("Error borrando el entreno:", error);
-            }
+                if(datos.success) { cargarBalance(); } else { alert("Error al borrar: " + datos.mensaje); }
+            } catch (error) { console.error("Error borrando el entreno:", error); }
         }
-        // NUEVO: Función para guardar el gasto manual
+
         window.enviarGastoManual = async function() {
             const inputCalorias = document.getElementById('input-calorias-manual');
-            const btnAñadir = event.target; // Capturamos el botón que hemos pulsado
+            const btnAñadir = event.target; 
             const calorias = inputCalorias.value;
             
-            if (!calorias) {
-                alert("Por favor, introduce un número de calorías.");
-                return;
-            }
+            if (!calorias) { alert("Por favor, introduce un número de calorías."); return; }
 
-            // Cambiamos el botón para dar feedback visual de que está cargando
             const textoOriginal = btnAñadir.textContent;
             btnAñadir.textContent = "Guardando...";
             btnAñadir.disabled = true;
@@ -453,31 +388,21 @@ window.añadirBoxeo = async function() {
                 const res = await fetch(`/api/dashboard/gasto-manual/${USUARIO}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        calorias: parseInt(calorias), 
-                        fecha: getFechaISO() 
-                    })
+                    body: JSON.stringify({ calorias: parseInt(calorias), fecha: getFechaISO() })
                 });
-                
                 const datos = await res.json();
-                
                 if (datos.success) {
-                    inputCalorias.value = ""; // Limpiamos la caja
-                    await cargarBalance(); // Esperamos a que recargue los números
-                } else {
-                    alert("Error al guardar: " + datos.mensaje);
-                }
-            } catch (error) {
-                console.error("Error enviando gasto manual:", error);
-            } finally {
-                // Devolvemos el botón a su estado normal
+                    inputCalorias.value = ""; 
+                    await cargarBalance(); 
+                } else { alert("Error al guardar: " + datos.mensaje); }
+            } catch (error) { console.error("Error:", error); } 
+            finally {
                 btnAñadir.textContent = textoOriginal;
                 btnAñadir.disabled = false;
                 btnAñadir.classList.replace('bg-gray-500', 'bg-gray-700');
             }
         }
 
-        // Lógica del Switch Garmin/Manual
         function cambiarModo() {
             const toggle = document.getElementById('toggle-modo');
             const panelGarmin = document.getElementById('panel-garmin');
@@ -485,12 +410,10 @@ window.añadirBoxeo = async function() {
             const textoModo = document.getElementById('texto-modo');
 
             if (toggle.checked) {
-                // Mostrar Garmin, ocultar Manual
                 panelGarmin.classList.remove('hidden');
                 panelManual.classList.add('hidden');
                 textoModo.textContent = "Garmin";
             } else {
-                // Mostrar Manual, ocultar Garmin
                 panelGarmin.classList.add('hidden');
                 panelManual.classList.remove('hidden');
                 textoModo.textContent = "Manual";
@@ -498,13 +421,81 @@ window.añadirBoxeo = async function() {
             cargarBalance();
         }
         
-        // Función placeholder para cuando hagamos el backend
         function guardarCredencialesGarmin() {
             alert("¡Interfaz lista! El próximo paso es enviar esto a la base de datos.");
         }
-        // Arrancar
-        actualizarUIFecha();
-        cargarBalance();
+
+        // --- SISTEMA DE AUTENTICACIÓN ---
+        function comprobarSesion() {
+            TOKEN = localStorage.getItem("token");
+            USUARIO = localStorage.getItem("username");
+            
+            if (TOKEN && USUARIO) {
+                document.getElementById('vista-login').classList.add('hidden');
+                document.getElementById('vista-app').classList.remove('hidden');
+                document.getElementById('nombre-usuario-ui').textContent = USUARIO;
+                actualizarUIFecha();
+                cargarBalance();
+            } else {
+                document.getElementById('vista-login').classList.remove('hidden');
+                document.getElementById('vista-app').classList.add('hidden');
+            }
+        }
+
+        async function hacerLogin() {
+            const u = document.getElementById('auth-username').value;
+            const p = document.getElementById('auth-password').value;
+            const errorMsg = document.getElementById('auth-error');
+            if(!u || !p) return;
+
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: u, password: p })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                localStorage.setItem("token", data.token);
+                localStorage.setItem("username", data.username);
+                errorMsg.classList.add('hidden');
+                comprobarSesion();
+            } else {
+                errorMsg.textContent = data.error;
+                errorMsg.classList.remove('hidden');
+            }
+        }
+
+        async function hacerRegistro() {
+            const u = document.getElementById('auth-username').value;
+            const p = document.getElementById('auth-password').value;
+            const errorMsg = document.getElementById('auth-error');
+            if(!u || !p) return;
+
+            const res = await fetch('/api/auth/registro', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: u, password: p })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                errorMsg.className = "text-green-400 text-sm mt-4 text-center";
+                errorMsg.textContent = data.mensaje;
+            } else {
+                errorMsg.className = "text-red-400 text-sm mt-4 text-center";
+                errorMsg.textContent = data.error;
+            }
+        }
+
+        function cerrarSesion() {
+            localStorage.removeItem("token");
+            localStorage.removeItem("username");
+            window.location.reload();
+        }
+
+        // --- ARRANQUE INICIAL ---
+        comprobarSesion();
     </script>
 </body>
 </html>
