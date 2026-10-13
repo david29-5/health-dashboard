@@ -36,22 +36,16 @@
 
             <!-- Balance Diario -->
             <div class="bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-700">
-                <h2 class="text-xl font-semibold mb-4 text-gray-200">Balance Diario</h2>
-                <div class="flex justify-between items-center bg-gray-900 rounded-lg p-4">
-                    <div class="text-center">
-                        <p class="text-xs text-gray-400 uppercase">Ingerido</p>
-                        <p class="text-2xl font-bold text-green-400" id="ui-ingeridas">-- kcal</p>
-                    </div>
-                    <div class="text-2xl font-black text-gray-500">-</div>
-                    <div class="text-center">
-                        <p class="text-xs text-gray-400 uppercase">Quemado</p>
-                        <p class="text-2xl font-bold text-orange-400" id="ui-quemadas">-- kcal</p>
-                    </div>
-                </div>
-                <div class="mt-4 text-center">
-                    <p class="text-sm text-gray-400">Balance Neto:</p>
-                    <p class="text-3xl font-bold transition-colors duration-300" id="ui-balance">--</p>
-                    <p class="text-sm mt-1" id="ui-estado">Cargando datos...</p>
+                ... (tu código actual del balance) ...
+            </div>
+
+            <!-- NUEVO: Panel de Gasto Manual (Oculto por defecto) -->
+            <div id="panel-gasto-manual" class="bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-700 hidden">
+                <h2 class="text-xl font-semibold mb-2 text-gray-200">⌚ Sin conexión a Garmin</h2>
+                <p class="text-sm text-gray-400 mb-4">Introduce tu gasto calórico diario manualmente:</p>
+                <div class="flex gap-2">
+                    <input type="number" id="input-calorias-manual" placeholder="Ej: 450" class="w-full bg-gray-900 text-white rounded-lg p-3 border border-gray-600 focus:border-blue-500 outline-none transition">
+                    <button onclick="enviarGastoManual()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-lg transition shadow-md">Guardar</button>
                 </div>
             </div>
 
@@ -168,6 +162,13 @@
                     uiBalance.textContent = datos.resumen.balance_neto;
                     uiEstado.textContent = datos.resumen.estado;
                     uiBalance.className = datos.resumen.balance_neto < 0 ? "text-3xl font-bold text-red-400" : "text-3xl font-bold text-green-400";
+                    // NUEVO: Lógica para mostrar/ocultar panel manual
+                    const panelManual = document.getElementById('panel-gasto-manual');
+                    if (datos.garmin_conectado === true) {
+                        panelManual.classList.add('hidden');
+                    } else {
+                        panelManual.classList.remove('hidden');
+                    }
 
                     listaComidas.innerHTML = "";
                     
@@ -368,6 +369,38 @@ window.añadirBoxeo = async function() {
                 }
             } catch (error) {
                 console.error("Error borrando el entreno:", error);
+            }
+        }
+        // NUEVO: Función para guardar el gasto manual
+        window.enviarGastoManual = async function() {
+            const inputCalorias = document.getElementById('input-calorias-manual');
+            const calorias = inputCalorias.value;
+            
+            if (!calorias) {
+                alert("Por favor, introduce un número de calorías.");
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/dashboard/gasto-manual/${USUARIO}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        calorias: parseInt(calorias), 
+                        fecha: getFechaISO() 
+                    })
+                });
+                
+                const datos = await res.json();
+                
+                if (datos.success) {
+                    inputCalorias.value = ""; // Limpiamos la caja
+                    cargarBalance(); // Recargamos los números suavemente
+                } else {
+                    alert("Error al guardar: " + datos.mensaje);
+                }
+            } catch (error) {
+                console.error("Error enviando gasto manual:", error);
             }
         }
         // Arrancar
