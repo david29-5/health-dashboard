@@ -11,7 +11,7 @@ from pydantic import BaseModel
 router = APIRouter(prefix="/api/dashboard", tags=["Dashboard"])
 
 @router.get("/balance/{usuario}")
-def obtener_balance_diario(usuario: str, fecha: str = None):
+def obtener_balance_diario(usuario: str, fecha: str = None, modo: str = "garmin"): # <-- AÑADIMOS 'modo'
     from datetime import date
     if not fecha:
         fecha_objetivo = date.today().isoformat()
@@ -22,7 +22,7 @@ def obtener_balance_diario(usuario: str, fecha: str = None):
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # 1. Búsqueda de comidas (índices: 0=calorias, 1=proteinas, 2=carbos, 3=grasas)
+    # 1. Búsqueda de comidas (0=cal, 1=prot, 2=carb, 3=grasas)
     cursor.execute('''
         SELECT SUM(calorias), SUM(proteinas), SUM(carbohidratos), SUM(grasas)
         FROM registro_comidas WHERE usuario = ? AND fecha = ?
@@ -34,6 +34,52 @@ def obtener_balance_diario(usuario: str, fecha: str = None):
         "proteinas": row[1] if row and row[1] else 0,
         "carbohidratos": row[2] if row and row[2] else 0,
         "grasas": row[3] if row and row[3] else 0,
+    }
+
+    cursor.execute('''
+        SELECT id, descripcion, calorias, proteinas, carbohidratos, grasas 
+        FROM registro_comidas WHERE usuario = ? AND fecha = ?
+    ''', (usuario, fecha_objetivo))
+    lista_comidas = [{"id": c[0], "descripcion": c[1], "calorias": c[2], "proteinas": c[3], "carbohidratos": c[4], "grasas": c[5]} for c in cursor.fetchall()]
+
+    # 2. Búsqueda de entrenamientos manuales (Boxeo + Gasto Manual)
+    cursor.execute('SELECT SUM(calorias) FROM registro_entrenamientos WHERE usuario = ? AND fecha = ?', (usuario, fecha_objetivo))
+    row_entrenos = cursor.fetchone()
+    calorias_extra = row_entrenos[0] if row_entrenos and row_entrenos[0] else 0
+    
+    cursor.execute('SELECT id, descripcion, calorias FROM registro_entrenamientos WHERE usuario = ? AND fecha = ?', (usuario, fecha_objetivo))
+    lista_entrenamientos = [{"id": e[0], "descripcion": e[1], "calorias": e[2]} for e in cursor.fetchall()]
+    
+    conn.close()
+   
+    # 3. EL CORTAFUEGOS: Si estamos en manual, saltamos Garmin
+    if modo == "garmin":
+        garmin_data = obtener_resumen_hoy(fecha_objetivo) 
+        quemadas_garmin = garmin_data.get("caloriasTotales", 0) if garmin_data.get("success") else 0
+        estado_garmin = garmin_data.get("success", False)
+    else:
+        # Modo manual: 0 llamadas a internet, carga instantánea
+        quemadas_garmin = 0
+        estado_garmin = False
+    
+    # 4. Cálculo final (Si es manual, quemadas_totales será SOLO tus entrenos/manuales)
+    quemadas_totales = quemadas_garmin + calorias_extra
+    balance_neto = consumidas - quemadas_totales
+
+    return {
+        "success": True,
+        "usuario": usuario,
+        "fecha": fecha_objetivo,
+        "resumen": {
+            "calorias_ingeridas": consumidas,
+            "calorias_quemadas_garmin": quemadas_totales,
+            "balance_neto": balance_neto,
+            "estado": "Déficit 📉" if balance_neto < 0 else "Superávit 📈"
+        },
+        "macros_acumulados": macros,
+        "comidas_registradas": lista_comidas,
+        "entrenamientos_registrados": lista_entrenamientos,
+        "garmin_conectado": estado_garmin
     }
 
     # Lista de comidas (índices: 0=id, 1=desc, 2=cal, 3=prot, 4=carb, 5=grasas)

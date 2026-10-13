@@ -211,8 +211,11 @@
 
         async function cargarBalance() {
             const fechaStr = getFechaISO();
+            const toggleModo = document.getElementById('toggle-modo');
+            const modo = toggleModo && toggleModo.checked ? "garmin" : "manual";
+
             try {
-                const res = await fetch(`/api/dashboard/balance/${USUARIO}?fecha=${fechaStr}`);
+                const res = await fetch(`/api/dashboard/balance/${USUARIO}?fecha=${fechaStr}&modo=${modo}`);
                 const datos = await res.json();
 
                 if (datos.success) {
@@ -225,6 +228,7 @@
                     
                     const hayComidas = datos.comidas_registradas && datos.comidas_registradas.length > 0;
                     const hayEntrenos = datos.entrenamientos_registrados && datos.entrenamientos_registrados.length > 0;
+                    
 
                     if (!hayComidas && !hayEntrenos) {
                         listaComidas.innerHTML = '<p class="text-gray-500 text-sm text-center italic">No hay registros este día.</p>';
@@ -485,6 +489,7 @@ window.añadirBoxeo = async function() {
                 panelManual.classList.remove('hidden');
                 textoModo.textContent = "Manual";
             }
+            cargarBalance();
         }
         
         // Función placeholder para cuando hagamos el backend
