@@ -36,7 +36,23 @@
 
             <!-- Balance Diario -->
             <div class="bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-700">
-                ... (tu código actual del balance) ...
+                <h2 class="text-xl font-semibold mb-4 text-gray-200">Balance Diario</h2>
+                <div class="flex justify-between items-center bg-gray-900 rounded-lg p-4">
+                    <div class="text-center">
+                        <p class="text-xs text-gray-400 uppercase">Ingerido</p>
+                        <p class="text-2xl font-bold text-green-400" id="ui-ingeridas">-- kcal</p>
+                    </div>
+                    <div class="text-2xl font-black text-gray-500">-</div>
+                    <div class="text-center">
+                        <p class="text-xs text-gray-400 uppercase">Quemado</p>
+                        <p class="text-2xl font-bold text-orange-400" id="ui-quemadas">-- kcal</p>
+                    </div>
+                </div>
+                <div class="mt-4 text-center">
+                    <p class="text-sm text-gray-400">Balance Neto:</p>
+                    <p class="text-3xl font-bold transition-colors duration-300" id="ui-balance">--</p>
+                    <p class="text-sm mt-1" id="ui-estado">Cargando datos...</p>
+                </div>
             </div>
 
             <!-- NUEVO: Panel de Gasto Manual (Oculto por defecto) -->
@@ -48,7 +64,6 @@
                     <button onclick="enviarGastoManual()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-lg transition shadow-md">Guardar</button>
                 </div>
             </div>
-
             <!-- Registrar Comida y Entreno -->
             <div class="bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-700">
                 <h2 class="text-xl font-semibold mb-4 text-gray-200">Registrar Comida</h2>
