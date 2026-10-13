@@ -213,7 +213,13 @@
             const fechaStr = getFechaISO();
             const toggleModo = document.getElementById('toggle-modo');
             const modo = toggleModo && toggleModo.checked ? "garmin" : "manual";
-
+            // NUEVO: ESTADO DE CARGA VISUAL (Animación de parpadeo)
+            uiIngeridas.innerHTML = '<span class="animate-pulse text-gray-500">⏳</span>';
+            uiQuemadas.innerHTML = '<span class="animate-pulse text-gray-500">⏳</span>';
+            uiBalance.innerHTML = '<span class="animate-pulse text-gray-500">...</span>';
+            uiEstado.textContent = "Obteniendo datos...";
+            uiBalance.className = "text-3xl font-bold text-gray-500"; // Color neutro mientras carga
+            listaComidas.innerHTML = '<div class="flex justify-center"><span class="animate-pulse text-3xl">⏳</span></div>';
             try {
                 const res = await fetch(`/api/dashboard/balance/${USUARIO}?fecha=${fechaStr}&modo=${modo}`);
                 const datos = await res.json();
