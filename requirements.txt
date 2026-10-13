@@ -32,3 +32,5 @@ passlib[bcrypt]
 cryptography
 PyJWT
 python-multipart
+passlib
+bcrypt==3.2.2
