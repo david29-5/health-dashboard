@@ -6,6 +6,7 @@ import sqlite3
 from database.db import get_db_connection
 from services.garmin_service import obtener_resumen_hoy
 from datetime import date, timedelta
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/dashboard", tags=["Dashboard"])
 
@@ -129,3 +130,50 @@ def obtener_historico(usuario: str, dias: int = 7):
         "dias": dias, 
         "datos": historico
     }
+from fastapi import APIRouter
+from pydantic import BaseModel
+from database.db import get_db_connection
+
+# Modelo para recibir los datos del frontend
+class CaloriasManuales(BaseModel):
+    calorias: int
+    fecha: str
+
+@router.post("/calorias-manuales/{usuario}")
+def añadir_calorias_manuales(usuario: str, datos: CaloriasManuales):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Lo insertamos como si fuera un entrenamiento genérico
+    cursor.execute('''
+        INSERT INTO registro_entrenamientos (usuario, fecha, descripcion, calorias)
+        VALUES (?, ?, ?, ?)
+    ''', (usuario, datos.fecha, "Gasto Diario (Manual)", datos.calorias))
+    
+    conn.commit()
+    conn.close()
+    
+    return {"success": True, "mensaje": "Calorías manuales añadidas correctamente"}
+
+# 1. Creamos el "molde" de los datos que enviará la web
+class GastoManual(BaseModel):
+    calorias: int
+    fecha: str
+
+# 2. Creamos la ruta para guardarlo
+@router.post("/gasto-manual/{usuario}")
+def añadir_gasto_manual(usuario: str, datos: GastoManual):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Lo insertamos directo en la tabla de entrenamientos
+    # Como es un INSERT, no nos afecta el problema de los índices (row[0]) de Turso
+    cursor.execute('''
+        INSERT INTO registro_entrenamientos (usuario, fecha, descripcion, calorias)
+        VALUES (?, ?, ?, ?)
+    ''', (usuario, datos.fecha, "Gasto Diario (Manual)", datos.calorias))
+    
+    conn.commit()
+    conn.close()
+    
+    return {"success": True, "mensaje": "Gasto manual añadido correctamente"}
