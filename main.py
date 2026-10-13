@@ -5,6 +5,8 @@ from database.db import init_db  # <--- NUEVO
 from routers import garmin_routes, nutrition_routes, dashboard_routes
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from routers import dashboard_routes, auth_routes  # <- Añade auth_routes aquí
+
 
 # Inicializamos la base de datos al arrancar
 init_db()  # <--- NUEVO
@@ -27,6 +29,7 @@ app.add_middleware(
 app.include_router(garmin_routes.router)  # <--- Y esta es la línea 2 que faltaba
 app.include_router(nutrition_routes.router) # <--- AÑADIDO: Enganche de nutrición
 app.include_router(dashboard_routes.router) # <--- AÑADIDO
+app.include_router(auth_routes.router)
 
 # Montamos la carpeta frontend para que sirva los archivos estáticos (JS, CSS, imágenes si hubiera)
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
