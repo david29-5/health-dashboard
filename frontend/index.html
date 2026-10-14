@@ -531,9 +531,13 @@
             localStorage.removeItem("username");
             window.location.reload();
         }
+        if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+}
 
         // --- ARRANQUE INICIAL ---
         comprobarSesion();
+
     </script>
 </body>
 </html>

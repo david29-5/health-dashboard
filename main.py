@@ -66,3 +66,6 @@ def serve_manifest():
 @app.get("/icon.png")
 def serve_icon():
     return FileResponse("frontend/icon.png")
+@app.get("/sw.js")
+def serve_sw():
+    return FileResponse("frontend/sw.js")
