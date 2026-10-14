@@ -1,12 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import garmin_routes, nutrition_routes  # <--- AÑADIDO: nutrition_routes # <--- Esta es la línea 1 que faltaba
-from database.db import init_db  # <--- NUEVO
-from routers import garmin_routes, nutrition_routes, dashboard_routes
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from routers import dashboard_routes, auth_routes  # <- Añade auth_routes aquí
-from database.db import get_db_connection
+
+# Importamos todas las rutas y la base de datos de una sola vez
+from routers import garmin_routes, nutrition_routes, dashboard_routes, auth_routes
+from database.db import init_db, get_db_connection
 
 def inicializar_db():
     try:
@@ -28,11 +27,9 @@ def inicializar_db():
     except Exception as e:
         print(f"❌ Error creando la tabla usuarios: {e}")
 
-# Ejecutamos esta función automáticamente cada vez que arranca el servidor
+# Inicializamos las tablas al arrancar el servidor
 inicializar_db()
-
-# Inicializamos la base de datos al arrancar
-init_db()  # <--- NUEVO
+init_db()
 
 app = FastAPI(
     title="Health Dashboard API", 
@@ -48,16 +45,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Conectar las rutas
-app.include_router(garmin_routes.router)  # <--- Y esta es la línea 2 que faltaba
-app.include_router(nutrition_routes.router) # <--- AÑADIDO: Enganche de nutrición
-app.include_router(dashboard_routes.router) # <--- AÑADIDO
+# Conectar los routers
+app.include_router(garmin_routes.router)
+app.include_router(nutrition_routes.router)
+app.include_router(dashboard_routes.router)
 app.include_router(auth_routes.router)
 
-# Montamos la carpeta frontend para que sirva los archivos estáticos (JS, CSS, imágenes si hubiera)
+# Montamos la carpeta frontend bajo la ruta /static
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
 
+# Rutas para servir la web, el manifest y el icono de la App
 @app.get("/")
 def serve_frontend():
-    # Cuando entres a localhost:8000, te devolverá el archivo HTML
     return FileResponse("frontend/index.html")
+
+@app.get("/manifest.json")
+def serve_manifest():
+    return FileResponse("manifest.json")
+
+@app.get("/icon.png")
+def serve_icon():
+    return FileResponse("frontend/icon.png")
