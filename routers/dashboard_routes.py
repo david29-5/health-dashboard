@@ -74,8 +74,8 @@ def obtener_balance_diario(usuario: str, background_tasks: BackgroundTasks, fech
         estado_garmin = False
     
     # 5. Cálculo final
-        quemadas_totales = (quemadas_base or 0) + (calorias_extra_entrenos or 0)
-        balance_neto = consumidas - quemadas_totales
+    quemadas_totales = (quemadas_base or 0) + (calorias_extra_entrenos or 0)
+    balance_neto = consumidas - quemadas_totales
     return {
         "success": True,
         "usuario": usuario,
