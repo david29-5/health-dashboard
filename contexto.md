@@ -1,55 +1,74 @@
-1. Estado Actual y Tecnologías
+# 📊 Health Dashboard - Contexto del Proyecto
 
-    Stack tecnológico:
+## 1. Stack Tecnológico y Estructura
+- **Backend:** Python, FastAPI, SQLite / Turso (Base de datos en la nube), Uvicorn.
+- **Seguridad:** Passlib (Bcrypt) para contraseñas, PyJWT para tokens de sesión (7 días).
+- **Integraciones:** Librería `garminconnect` con caché local multiusuario (`garmin_cache_v2`) y sincronización asíncrona por `BackgroundTasks`.
+- **Frontend:** HTML5, Tailwind CSS (modo oscuro, PWA instalable con `manifest.json` y Service Worker `sw.js`), Chart.js.
+- **Estructura clave:**
+  - `main.py`: Arranque de FastAPI, configuración de rutas estáticas y creación automática de tablas.
+  - `database/db.py`: Conexión centralizada a Turso.
+  - `routers/`: `auth_routes.py` (login/registro/Garmin), `dashboard_routes.py` (balance, histórico, gasto manual), `nutrition_routes.py` (IA de comidas).
+  - `services/garmin_service.py`: Lógica de sesión y descargas en segundo plano protegidas contra bloqueos 429.
 
-        Backend: Python, FastAPI, SQLite / Turso (Base de datos en la nube), Uvicorn.
+## 2. Estado Actual (Lo que ya funciona)
+- Sistema completo de autenticación y aislamiento de datos por usuario.
+- Balance diario inteligente (Ingeridas vs. Quemadas) con modo dual (Garmin automático vs. Gasto manual diario).
+- Gráfica semanal de los últimos 7 días con Chart.js.
+- PWA instalable con icono personalizado y Service Worker.
 
-        Seguridad: Passlib (Bcrypt) para hash de contraseñas, PyJWT para autenticación por tokens de sesión.
+## 3. Próximos Pasos Pendientes (Plan de Trabajo)
+- [ ] **Fase 1:** Crear tabla `plantillas_entrenamientos` en Turso y endpoint de IA para generar rutinas predefinidas.
+- [ ] **Fase 2:** Dividir la interfaz web con un selector (🍽️ Comidas | 🔥 Entrenos) y añadir la biblioteca de rutinas con botones `[+]`.
+- [ ] **Fase 3:** Extraer actividades reales de Garmin con `get_activities_by_date` para listarlas en el día.
+- [ ] **Fase 4:** Blindar la suma calórica para que las actividades automáticas de Garmin no dupliquen el total del reloj.
 
-        Integraciones: Librería garminconnect para sincronización de datos biométricos y de actividad.
 
-        Frontend: HTML5, Tailwind CSS (modo oscuro y diseño responsive), JavaScript vainilla, Chart.js para visualización de gráficas semanales.
+Fase de moejora 🗺️ Plan de Trabajo (4 Fases Súper Eficientes)
 
-    Estructura del proyecto:
+Para no romper nada de lo que ya funciona, lo haremos en este orden exacto cuando quieras ponerte manos a la obra:
 
-        main.py: Punto de entrada del servidor FastAPI, inicialización de base de datos y registro de routers.
+#### Fase 1: Base de Datos y IA para Plantillas (Backend)
 
-        database/db.py: Conexión centralizada a la base de datos SQLite/Turso.
+- **Qué haremos:**
+    
+    1. Crear una tabla nueva muy sencilla en Turso llamada `plantillas_entrenamientos` (`id`, `usuario`, `nombre_corto`, `calorias`).
+        
+    2. Añadir un endpoint en `nutrition_routes.py` que reciba un texto libre (ej: _"1 hora de calistenia intensa y 15 min de comba"_), le pregunte a la IA cuántas calorías quema eso aproximadamente y le ponga un nombre corto limpio (ej: `"Calistenia + Comba (1h 15m)"`), guardándolo en tus plantillas fijas.
+        
+    3. Añadir rutas rápidas para **listar** tus plantillas y **borrar** alguna si te cansas de ella.
+        
 
-        routers/:
+#### Fase 2: La Interfaz Dual Comidas / Entrenos (Frontend)
 
-            auth_routes.py: Gestión de registro, inicio de sesión seguro y vinculación de credenciales de Garmin por usuario.
+- **Qué haremos:**
+    
+    1. Eliminar el botón antiguo de Boxeo y separar la lista actual (que ahora mismo mezcla comidas y entrenos en el mismo cajón) en dos vistas independientes controladas por un selector arriba: **[ 🍽️ Comidas | 🔥 Entrenos ]**.
+        
+    2. En la vista de **Entrenos**, pondremos dos bloques:
+        
+        - **Arriba (Tus Rutinas Fijas):** Tus botones rápidos creados por ti con un botón `[+]` (que al pulsarlo lo añade al día actual) y un desplegable `"✨ Crear nueva rutina con IA"`.
+            
+        - **Abajo (Entrenamientos de Hoy):** La lista de lo que has hecho en la fecha seleccionada.
+            
 
-            dashboard_routes.py: Lógica del balance diario, histórico de 7 días y control de gasto manual/entrenamientos.
+#### Fase 3: El "Blindaje" de Calorías y Sincronización de Actividades Garmin
 
-        services/garmin_service.py: Gestión multiusuario de sesiones de Garmin, caché local (garmin_cache_v2) y sincronización asíncrona en segundo plano (BackgroundTasks).
+- **Qué haremos:**
+    
+    1. En `garmin_service.py`, aprovechando el viaje que ya hace el "minion" en segundo plano (una vez pase el bloqueo 429), añadiremos una sola línea: `client.get_activities_by_date(fecha_iso, fecha_iso)`.
+        
+    2. Eso nos devuelve una lista con las actividades que hayas grabado con el reloj ese día (nombre, tipo de deporte y calorías).
+        
+    3. Las guardaremos en tu tabla `registro_entrenamientos` pero con un prefijo o columna especial (por ejemplo, empezando por `"⌚ [Garmin] "`) y evitando duplicados si recargas la página.
+        
 
-        index.html: Interfaz completa de la aplicación (vistas de Día y Semana, autenticación, paneles dinámicos y gráficos).
+#### Fase 4: Ajuste de la Fórmula en `dashboard_routes.py`
 
-    Qué funciona ya:
-
-        Sistema de Autenticación Multiusuario: Registro con contraseñas seguras cifradas, login con generación de tokens y aislamiento de datos por usuario en la base de datos.
-
-        Balance Diario Inteligente: Cálculo en tiempo real de calorías ingeridas (vía IA), calorías quemadas y balance neto con indicador de estado (Superávit/Déficit).
-
-        Modo Dual (Garmin vs. Manual): Posibilidad de alternar mediante un switch interactivo entre la sincronización automática con el reloj y un modo manual de calorías fijas por día.
-
-        Optimización de Rendimiento: Uso de BackgroundTasks en FastAPI y caché local para permitir cargas instantáneas de la interfaz mientras la sincronización con Garmin corre en segundo plano.
-
-        Histórico y Gráfica Semanal: Visualización comparativa de ingesta y gasto calórico de los últimos 7 días mediante Chart.js.
-
-2. Próximos Pasos Pendientes (Lo que quiero tocar)
-
-    [ ] Tarea 1: Mitigar y gestionar de forma robusta las limitaciones de tasa de peticiones de Garmin (bloqueos HTTP 429 por exceso de logins) optimizando la reutilización de la sesión en disco por usuario.
-
-    [ ] Tarea 2: Extracción automática de actividades granulares desde Garmin (carreras, entrenamientos, etc.) para listarlas y sumarlas automáticamente en el desglose diario.
-
-    [ ] Tarea 3: Pulir la experiencia de usuario (UX) en el panel de configuración de credenciales de Garmin y añadir indicadores visuales de estado de sincronización en segundo plano.
-
-3. Reglas de Código y Estilo
-
-    Mantener el código limpio, comentado y modular (separación clara entre rutas, servicios y base de datos).
-
-    Seguir la estructura y convenciones existentes en los routers y servicios de FastAPI.
-
-    Priorizar la seguridad en el manejo de credenciales externas (encriptación y almacenamiento seguro en base de datos).
+- **Qué haremos:**
+    
+    1. Ajustar la suma de calorías en el servidor para que sea 100% inteligente:
+        
+        - **Si estás en Modo Garmin:** `Quemadas = Total_Reloj_Garmin + Entrenos_Manuales_Del_Dia` _(ignorando en la suma los que tengan la etiqueta `⌚ [Garmin]`, que solo se envían a la web para que los veas en la lista)_.
+            
+        - **Si estás en Modo Manual:** `Quemadas = Base_Manual_Dia + Todos_Los_Entrenos_Del_Dia`.
